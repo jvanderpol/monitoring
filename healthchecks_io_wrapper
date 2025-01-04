@@ -39,4 +39,4 @@ try_urlopen(f'{url_prefix}/start?create=1&rid={run_id}')
 
 run_result = subprocess.run(sys.argv[2:])
 
-try_urlopen(f'{url_prefix}/{run_result.returncode}?rid={run_id}')
+try_urlopen(f'{url_prefix}/{abs(run_result.returncode)}?rid={run_id}')
