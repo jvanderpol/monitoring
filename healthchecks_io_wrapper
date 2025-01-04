@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+import logging
+import os.path
+import socket
+import subprocess
+import sys
+import urllib.error
+import urllib.request
+import uuid
+import re
+
+MAX_HTTP_ATTEMPTS = 5
+
+def try_urlopen(url, *args, **kwargs):
+  attempt = 0
+  print(f'Calling {url}')
+  while attempt < MAX_HTTP_ATTEMPTS:
+    try:
+      urllib.request.urlopen(url, *args, **kwargs)
+      return
+    except urllib.error.URLError:
+      logging.exception(f'Error calling {url}')
+    attempt += 1
+  print(f'Gave up after {MAX_HTTP_ATTEMPTS}', file=sys.stderr)
+
+
+if len(sys.argv) < 3:
+  print(f'usage {sys.argv[0]} ping_key wrapped_command [arg...', file=sys.stderr)
+  sys.exit(1)
+
+ping_key = sys.argv[1]
+slug = f'{socket.gethostname()}_{os.path.basename(sys.argv[2])}'
+escaped_slug = re.sub(r'[^a-zA-Z]', '_', slug)
+run_id = str(uuid.uuid4())
+url_prefix=f'https://hc-ping.com/{ping_key}/{escaped_slug}'
+
+try_urlopen(f'{url_prefix}/start?create=1&rid={run_id}')
+
+run_result = subprocess.run(sys.argv[2:])
+
+try_urlopen(f'{url_prefix}/{run_result.returncode}?rid={run_id}')
